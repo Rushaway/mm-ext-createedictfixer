@@ -29,17 +29,18 @@ ICvar* GetICVar()
 #endif
 }
 
-ConVar cvar_cef_log("cef_log", "0", FCVAR_NONE, "Log edict indexes");
+ConVar cvar_cef_log("cef_log", "1", FCVAR_NONE, "Log edict indexes");
 
 bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
 	GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
+	META_CONPRINTF("Adding CreateEdict hook...\n");
 	SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
+	META_CONPRINTF("CreateEdict hook added.\n");
 	gpGlobals = ismm->GetCGlobals();
 
 	META_LOG(g_PLAPI, "Starting plugin.");
-	META_CONPRINTF("Starting plugin.");
 
 #if SOURCE_ENGINE==SE_ORANGEBOX || SOURCE_ENGINE==SE_LEFT4DEAD || SOURCE_ENGINE==SE_LEFT4DEAD2 || SOURCE_ENGINE==SE_TF2 || SOURCE_ENGINE==SE_DODS || SOURCE_ENGINE==SE_HL2DM || SOURCE_ENGINE==SE_NUCLEARDAWN || \
     SOURCE_ENGINE==SE_ALIENSWARM || SOURCE_ENGINE==SE_BLOODYGOODTIME || SOURCE_ENGINE==SE_CSGO || SOURCE_ENGINE==SE_CSS || SOURCE_ENGINE==SE_INSURGENCY || SOURCE_ENGINE==SE_SDK2013 || SOURCE_ENGINE== SE_BMS
@@ -61,6 +62,7 @@ bool CEF::Unload(char *error, size_t maxlen)
 edict_t * Hook_CreateEdict(int iIndex)
 {
 	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
+
 	if (iIndex > 0)
 	{
 		RETURN_META_VALUE(MRES_IGNORED, 0);
@@ -72,18 +74,24 @@ edict_t * Hook_CreateEdict(int iIndex)
 		i++;
 	}
 
-	META_CONPRINTF("Hook_CreateEdict: Index: %d | CEF: %d\n", iIndex, i);
 	g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
 	META_LOG(g_PLAPI, "CEF: %d", i);
+	META_CONPRINTF("CEF found free index: %d\n", i);
 
 	if (i >= 2048) /* Maybe we should do something about 2047? */
 	{
+		META_CONPRINTF("CEF: Index too high (%d >= 2048)\n", i);
 		RETURN_META_VALUE(MRES_IGNORED, 0);
 	}
 
 	if (cvar_cef_log.GetBool())
 	{
 		g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
+		META_CONPRINTF("CEF logging enabled: %d\n", i);
+	}
+	else
+	{
+		META_CONPRINTF("CEF logging disabled, but hook is working\n");
 	}
 
 	edict_t * pEdict = ENGINE_CALL(CreateEdict)(i);
@@ -122,7 +130,7 @@ const char *CEF::GetLicense()
 
 const char *CEF::GetVersion()
 {
-	return "1.1.6";
+	return "1.1.7";
 }
 
 const char *CEF::GetDate()
@@ -155,4 +163,3 @@ const char *CEF::GetURL()
 	return "http://www.SourceMod.net/";
 
 }
-
