@@ -39,6 +39,7 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
 	gpGlobals = ismm->GetCGlobals();
 
 	META_LOG(g_PLAPI, "Starting plugin.");
+	META_CONPRINTF("Starting plugin.");
 
 #if SOURCE_ENGINE==SE_ORANGEBOX || SOURCE_ENGINE==SE_LEFT4DEAD || SOURCE_ENGINE==SE_LEFT4DEAD2 || SOURCE_ENGINE==SE_TF2 || SOURCE_ENGINE==SE_DODS || SOURCE_ENGINE==SE_HL2DM || SOURCE_ENGINE==SE_NUCLEARDAWN || \
     SOURCE_ENGINE==SE_ALIENSWARM || SOURCE_ENGINE==SE_BLOODYGOODTIME || SOURCE_ENGINE==SE_CSGO || SOURCE_ENGINE==SE_CSS || SOURCE_ENGINE==SE_INSURGENCY || SOURCE_ENGINE==SE_SDK2013 || SOURCE_ENGINE== SE_BMS
@@ -59,6 +60,7 @@ bool CEF::Unload(char *error, size_t maxlen)
 
 edict_t * Hook_CreateEdict(int iIndex)
 {
+	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
 	if (iIndex > 0)
 	{
 		RETURN_META_VALUE(MRES_IGNORED, 0);
@@ -70,6 +72,7 @@ edict_t * Hook_CreateEdict(int iIndex)
 		i++;
 	}
 
+	META_CONPRINTF("Hook_CreateEdict: Index: %d | CEF: %d\n", iIndex, i);
 	g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
 	META_LOG(g_PLAPI, "CEF: %d", i);
 
@@ -152,3 +155,4 @@ const char *CEF::GetURL()
 	return "http://www.SourceMod.net/";
 
 }
+
