@@ -60,7 +60,7 @@ bool CEF::Unload(char *error, size_t maxlen)
 	return true;
 }
 
-edict_t * Hook_CreateEdict(int iIndex)
+static edict_t * Hook_CreateEdict(int iIndex)
 {
 	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
 
@@ -70,7 +70,8 @@ edict_t * Hook_CreateEdict(int iIndex)
 	}
 
 	int i = 0;
-	while (PEntityOfEntIndex(i) != NULL)
+	edict_t *pEnt;
+	while ((pEnt = engine->PEntityOfEntIndex(i)) != NULL)
 	{
 		i++;
 	}
@@ -164,4 +165,3 @@ const char *CEF::GetURL()
 	return "http://www.SourceMod.net/";
 
 }
-
