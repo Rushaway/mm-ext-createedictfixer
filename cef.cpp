@@ -8,8 +8,10 @@ PLUGIN_EXPOSE(CEF, g_CEF);
 
 IVEngineServer *engine = NULL;
 CGlobalVars *gpGlobals = NULL;
+IServerGameDLL *gamedll = NULL;
 
 SH_DECL_HOOK1(IVEngineServer, CreateEdict, SH_NOATTRIB, 0, edict_t *, int);
+SH_DECL_HOOK0(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, void);
 
 #if !defined ORANGEBOX_BUILD
 ICvar* g_pCVar = NULL;
@@ -31,16 +33,52 @@ ICvar* GetICVar()
 
 ConVar cvar_cef_log("cef_log", "1", FCVAR_NONE, "Log edict indexes");
 
+void Hook_GameFrame()
+{
+    static int frameCount = 0;
+    frameCount++;
+    
+    // Log toutes les 100 frames pour éviter de spammer la console
+    if (frameCount % 100 == 0)
+    {
+        META_CONPRINTF("Hook_GameFrame called (frame %d)\n", frameCount);
+		META_LOG(g_PLAPI, "Hook_GameFrame called (frame %d)", frameCount);
+    }
+    
+    RETURN_META(MRES_IGNORED);
+}
+
 bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
-	PLUGIN_SAVEVARS();
-	GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
-	META_CONPRINTF("Adding CreateEdict hook...\n");
-	SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
-	META_CONPRINTF("CreateEdict hook added.\n");
-	gpGlobals = ismm->GetCGlobals();
+    PLUGIN_SAVEVARS();
+    
+    // Obtenir l'interface IVEngineServer
+    GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
+    if (!engine)
+    {
+        META_CONPRINTF("Failed to get IVEngineServer interface!\n");
+        return false;
+    }
+    
+    // Obtenir l'interface IServerGameDLL
+    GET_V_IFACE_CURRENT(GetServerFactory, gamedll, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
+    if (!gamedll)
+    {
+        META_CONPRINTF("Failed to get IServerGameDLL interface!\n");
+        return false;
+    }
+    
+    META_CONPRINTF("Adding CreateEdict hook...\n");
+    SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_GLOB_SHPTR(Hook_CreateEdict), false);
+    META_CONPRINTF("CreateEdict hook added.\n");
+    
+    META_CONPRINTF("Adding GameFrame hook...\n");
+    SH_ADD_HOOK(IServerGameDLL, GameFrame, gamedll, SH_STATIC(Hook_GameFrame), false);
+    META_CONPRINTF("GameFrame hook added.\n");
+    
+    gpGlobals = ismm->GetCGlobals();
 
-	META_LOG(g_PLAPI, "Starting plugin.");
+    META_LOG(g_PLAPI, "Starting plugin.");
 
 #if SOURCE_ENGINE==SE_ORANGEBOX || SOURCE_ENGINE==SE_LEFT4DEAD || SOURCE_ENGINE==SE_LEFT4DEAD2 || SOURCE_ENGINE==SE_TF2 || SOURCE_ENGINE==SE_DODS || SOURCE_ENGINE==SE_HL2DM || SOURCE_ENGINE==SE_NUCLEARDAWN || \
     SOURCE_ENGINE==SE_ALIENSWARM || SOURCE_ENGINE==SE_BLOODYGOODTIME || SOURCE_ENGINE==SE_CSGO || SOURCE_ENGINE==SE_CSS || SOURCE_ENGINE==SE_INSURGENCY || SOURCE_ENGINE==SE_SDK2013 || SOURCE_ENGINE== SE_BMS
@@ -50,58 +88,59 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
     ConCommandBaseMgr::OneTimeInit(this);
 #endif
 
-	return true;
+    return true;
 }
 
 bool CEF::Unload(char *error, size_t maxlen)
 {
-	SH_REMOVE_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
-	return true;
+    SH_REMOVE_HOOK(IVEngineServer, CreateEdict, engine, SH_GLOB_SHPTR(Hook_CreateEdict), false);
+    SH_REMOVE_HOOK(IServerGameDLL, GameFrame, gamedll, SH_STATIC(Hook_GameFrame), false);
+    return true;
 }
 
 edict_t * Hook_CreateEdict(int iIndex)
 {
-	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
+    META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
 
-	if (iIndex > 0)
-	{
-		RETURN_META_VALUE(MRES_IGNORED, 0);
-	}
+    if (iIndex > 0)
+    {
+        RETURN_META_VALUE(MRES_IGNORED, 0);
+    }
 
-	int i = 0;
-	while (PEntityOfEntIndex(i) != NULL)
-	{
-		i++;
-	}
+    int i = 0;
+    while (PEntityOfEntIndex(i) != NULL)
+    {
+        i++;
+    }
 
-	g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
-	META_LOG(g_PLAPI, "CEF: %d", i);
-	META_CONPRINTF("CEF found free index: %d\n", i);
+    g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
+    META_LOG(g_PLAPI, "CEF: %d", i);
+    META_CONPRINTF("CEF found free index: %d\n", i);
 
-	if (i >= 2048) /* Maybe we should do something about 2047? */
-	{
-		META_CONPRINTF("CEF: Index too high (%d >= 2048)\n", i);
-		RETURN_META_VALUE(MRES_IGNORED, 0);
-	}
+    if (i >= 2048) /* Maybe we should do something about 2047? */
+    {
+        META_CONPRINTF("CEF: Index too high (%d >= 2048)\n", i);
+        RETURN_META_VALUE(MRES_IGNORED, 0);
+    }
 
-	if (cvar_cef_log.GetBool())
-	{
-		g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
-		META_CONPRINTF("CEF logging enabled: %d\n", i);
-	}
-	else
-	{
-		META_CONPRINTF("CEF logging disabled, but hook is working\n");
-	}
+    if (cvar_cef_log.GetBool())
+    {
+        g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
+        META_CONPRINTF("CEF logging enabled: %d\n", i);
+    }
+    else
+    {
+        META_CONPRINTF("CEF logging disabled, but hook is working\n");
+    }
 
-	edict_t * pEdict = ENGINE_CALL(CreateEdict)(i);
+    edict_t * pEdict = ENGINE_CALL(CreateEdict)(i);
 
-	if (pEdict == NULL)
-	{
-		RETURN_META_VALUE(MRES_IGNORED, 0);
-	}
+    if (pEdict == NULL)
+    {
+        RETURN_META_VALUE(MRES_IGNORED, 0);
+    }
 
-	RETURN_META_VALUE(MRES_SUPERCEDE, pEdict);
+    RETURN_META_VALUE(MRES_SUPERCEDE, pEdict);
 }
 
 bool CEF::RegisterConCommandBase(ConCommandBase *pVar)
@@ -125,41 +164,40 @@ void CEF::AllPluginsLoaded()
 
 const char *CEF::GetLicense()
 {
-	return "GPL";
+    return "GPL";
 }
 
 const char *CEF::GetVersion()
 {
-	return "1.1.7";
+    return "1.1.6";
 }
 
 const char *CEF::GetDate()
 {
-	return __DATE__;
+    return __DATE__;
 }
 
 const char *CEF::GetLogTag()
 {
-	return "CEF";
+    return "CEF";
 }
 
 const char *CEF::GetAuthor()
 {
-	return "Kyle Sanderson";
+    return "Kyle Sanderson";
 }
 
 const char *CEF::GetDescription()
 {
-	return "Fixes the currently messed up CreateEdict implementation.";
+    return "Fixes the currently messed up CreateEdict implementation.";
 }
 
 const char *CEF::GetName()
 {
-	return "Create Edict Fixer";
+    return "Create Edict Fixer";
 }
 
 const char *CEF::GetURL()
 {
-	return "http://www.SourceMod.net/";
-
+    return "http://www.SourceMod.net/";
 }
