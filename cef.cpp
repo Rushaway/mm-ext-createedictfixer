@@ -63,13 +63,7 @@ bool CEF::Unload(char *error, size_t maxlen)
 
 edict_t * Hook_CreateEdict(int iIndex)
 {
-	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
-
-	// Only hook when iIndex is -1 (auto-assign)
-	if (iIndex >= 0)
-	{
-		RETURN_META_VALUE(MRES_IGNORED, NULL);
-	}
+	META_CONPRINTF("Hook_CreateEdict called with iIndex: %d\n", iIndex);
 
 	// Find first free edict index starting from 1 (0 is reserved for world)
 	int i = 1;
