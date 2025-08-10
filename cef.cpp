@@ -11,7 +11,7 @@ CGlobalVars *gpGlobals = NULL;
 IServerGameDLL *gamedll = NULL;
 
 SH_DECL_HOOK1(IVEngineServer, CreateEdict, SH_NOATTRIB, 0, edict_t *, int);
-SH_DECL_HOOK0(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, void);
+SH_DECL_HOOK1(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, void, bool);
 
 #if !defined ORANGEBOX_BUILD
 ICvar* g_pCVar = NULL;
@@ -33,7 +33,7 @@ ICvar* GetICVar()
 
 ConVar cvar_cef_log("cef_log", "1", FCVAR_NONE, "Log edict indexes");
 
-void Hook_GameFrame()
+void Hook_GameFrame(bool simulating)
 {
     static int frameCount = 0;
     frameCount++;
@@ -41,7 +41,7 @@ void Hook_GameFrame()
     // Log toutes les 100 frames pour éviter de spammer la console
     if (frameCount % 100 == 0)
     {
-        META_CONPRINTF("Hook_GameFrame called (frame %d)\n", frameCount);
+        META_CONPRINTF("Hook_GameFrame called (frame %d, simulating: %d)\n", frameCount, simulating ? 1 : 0);
     }
 
     RETURN_META(MRES_IGNORED);
