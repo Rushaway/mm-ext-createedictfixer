@@ -60,7 +60,7 @@ bool CEF::Unload(char *error, size_t maxlen)
 	return true;
 }
 
-static edict_t * Hook_CreateEdict(int iIndex)
+edict_t * Hook_CreateEdict(int iIndex)
 {
 	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
 
