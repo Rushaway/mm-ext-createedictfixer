@@ -37,21 +37,20 @@ void Hook_GameFrame()
 {
     static int frameCount = 0;
     frameCount++;
-    
+
     // Log toutes les 100 frames pour éviter de spammer la console
     if (frameCount % 100 == 0)
     {
         META_CONPRINTF("Hook_GameFrame called (frame %d)\n", frameCount);
-		META_LOG(g_PLAPI, "Hook_GameFrame called (frame %d)", frameCount);
     }
-    
+
     RETURN_META(MRES_IGNORED);
 }
 
 bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
     PLUGIN_SAVEVARS();
-    
+
     // Obtenir l'interface IVEngineServer
     GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
     if (!engine)
@@ -59,7 +58,7 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
         META_CONPRINTF("Failed to get IVEngineServer interface!\n");
         return false;
     }
-    
+
     // Obtenir l'interface IServerGameDLL
     GET_V_IFACE_CURRENT(GetServerFactory, gamedll, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
     if (!gamedll)
@@ -67,15 +66,15 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
         META_CONPRINTF("Failed to get IServerGameDLL interface!\n");
         return false;
     }
-    
+
     META_CONPRINTF("Adding CreateEdict hook...\n");
-    SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_GLOB_SHPTR(Hook_CreateEdict), false);
+    SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
     META_CONPRINTF("CreateEdict hook added.\n");
-    
+
     META_CONPRINTF("Adding GameFrame hook...\n");
     SH_ADD_HOOK(IServerGameDLL, GameFrame, gamedll, SH_STATIC(Hook_GameFrame), false);
     META_CONPRINTF("GameFrame hook added.\n");
-    
+
     gpGlobals = ismm->GetCGlobals();
 
     META_LOG(g_PLAPI, "Starting plugin.");
@@ -93,7 +92,7 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
 
 bool CEF::Unload(char *error, size_t maxlen)
 {
-    SH_REMOVE_HOOK(IVEngineServer, CreateEdict, engine, SH_GLOB_SHPTR(Hook_CreateEdict), false);
+    SH_REMOVE_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
     SH_REMOVE_HOOK(IServerGameDLL, GameFrame, gamedll, SH_STATIC(Hook_GameFrame), false);
     return true;
 }
