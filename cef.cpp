@@ -70,6 +70,9 @@ edict_t * Hook_CreateEdict(int iIndex)
 		i++;
 	}
 
+	g_SMAPI->LogMsg(g_PLAPI, "CEF: %d", i);
+	META_LOG(g_PLAPI, "CEF: %d", i);
+
 	if (i >= 2048) /* Maybe we should do something about 2047? */
 	{
 		RETURN_META_VALUE(MRES_IGNORED, 0);
@@ -147,4 +150,5 @@ const char *CEF::GetName()
 const char *CEF::GetURL()
 {
 	return "http://www.SourceMod.net/";
+
 }
