@@ -37,7 +37,8 @@ bool CEF::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late
 	PLUGIN_SAVEVARS();
 	GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
 	META_CONPRINTF("Adding CreateEdict hook...\n");
-	SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
+	int hookid = SH_ADD_HOOK(IVEngineServer, CreateEdict, engine, SH_STATIC(Hook_CreateEdict), false);
+	META_CONPRINTF("Hook ID: %d\n", hookid);
 	META_CONPRINTF("CreateEdict hook added.\n");
 	gpGlobals = ismm->GetCGlobals();
 
@@ -64,14 +65,16 @@ edict_t * Hook_CreateEdict(int iIndex)
 {
 	META_CONPRINTF("Hook_CreateEdict: Index: %d\n", iIndex);
 
-	if (iIndex > 0)
+	// Only hook when iIndex is -1 (auto-assign)
+	if (iIndex >= 0)
 	{
-		RETURN_META_VALUE(MRES_IGNORED, 0);
+		RETURN_META_VALUE(MRES_IGNORED, NULL);
 	}
 
-	int i = 0;
+	// Find first free edict index starting from 1 (0 is reserved for world)
+	int i = 1;
 	edict_t *pEnt;
-	while ((pEnt = engine->PEntityOfEntIndex(i)) != NULL)
+	while ((pEnt = engine->PEntityOfEntIndex(i)) != NULL && !pEnt->IsFree())
 	{
 		i++;
 	}
